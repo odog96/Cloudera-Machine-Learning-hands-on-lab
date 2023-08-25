@@ -204,8 +204,8 @@ import cdsw, numpy
 from churnexplainer import ExplainedModel
 
 # Load the model saved earlier.
-em = ExplainedModel.load(model_name="telco_linear")
-
+#em = ExplainedModel.load(model_name="telco_linear")
+model = joblib.load('./models/svc_model.pkl')
 # *Note:* If you want to test this in a session, comment out the line
 # `@cdsw.model_metrics` below. Don't forget to uncomment when you
 # deploy, or it won't write the metrics to the database
@@ -214,22 +214,29 @@ em = ExplainedModel.load(model_name="telco_linear")
 @cdsw.model_metrics
 # This is the main function used for serving the model. It will take in the JSON formatted arguments , calculate the probablity of
 # churn and create a LIME explainer explained instance and return that as JSON.
-def explain(args):
-    data = dict(ChainMap(args, em.default_data))
-    data = em.cast_dct(data)
-    probability, explanation = em.explain_dct(data)
+def churn_pred(args )
 
-    # Track inputs
-    cdsw.track_metric("input_data", data)
-
-    # Track our prediction
-    cdsw.track_metric("probability", probability)
-
-    # Track explanation
-    cdsw.track_metric("explanation", explanation)
-
-    return {"data": dict(data), "probability": probability, "explanation": explanation}
-
+  df = pd.DataFrame(data=args["data"], columns=args["columns"])
+  response = model.predict(df)
+  return response
+  
+  
+#def explain(args):
+#    data = dict(ChainMap(args, em.default_data))
+#    data = em.cast_dct(data)
+#    probability, explanation = em.explain_dct(data)
+#
+#    # Track inputs
+#    cdsw.track_metric("input_data", data)
+#
+#    # Track our prediction
+#    cdsw.track_metric("probability", probability)
+#
+#    # Track explanation
+#    cdsw.track_metric("explanation", explanation)
+#
+#    return {"data": dict(data), "probability": probability, "explanation": explanation}
+#
 
 # To test this in a Session, comment out the `@cdsw.model_metrics`  line,
 # uncomment the and run the two rows below.

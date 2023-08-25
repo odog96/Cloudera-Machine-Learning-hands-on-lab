@@ -95,6 +95,9 @@ from lime.lime_tabular import LimeTabularExplainer
 import mlflow
 from sklearn.svm import SVC
 
+# added import to save model
+from sklearn.externals import joblib
+
 try:
   os.chdir("code")
 except:
@@ -147,14 +150,26 @@ for colname, dtype in zip(datadf.columns, datadf.dtypes):
 
   
 # Prepare data for Sklearn model and create train/test split
+# #####
+# Modifying the code below
+# splitting data into training first 
+
+X_train, X_test = train_test_split(datadf, random_state=42)
+y_train, y_test = labels[X_train.index.values].values, \
+labels[X_test.index.values].values
+
+
 ce = CategoricalEncoder()
-X = ce.fit_transform(datadf)
-y = labels.values
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
+# need to fit ce object, preferably on X_train. 
+ce.fit_transform(X_train)
+
+#X = ce.fit_transform(datadf)
+#y = labels.values
+#X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
+
 ct = ColumnTransformer(
     [("ohe", OneHotEncoder(categories='auto'), list(ce.cat_columns_ix_.values()))],
-    remainder="passthrough"
-)
+    remainder="passthrough")
 
 # Instantiate a new set of experiments (mlflow experiment object)
 mlflow.set_experiment("Churn Model Tuning")
@@ -175,19 +190,27 @@ for k in kernel:
     
     # Define and fit model pipeline
     svc = SVC(kernel = k, random_state = 0, max_iter=i, probability=True)
-    svc_pipe = Pipeline([("ct", ct), ("scaler", StandardScaler()), ("svc_fit", svc)])
+    svc_pipe = Pipeline([('ce',ce),  ("ct", ct), ("scaler", StandardScaler()), ("svc_fit", svc)])
     svc_pipe.fit(X_train, y_train)
     
     # Capture train and test set scores
     train_score2 = svc_pipe.score(X_train, y_train)
     test_score2 = svc_pipe.score(X_test, y_test)
-    datadf[labels.name + " probability"] = svc_pipe.predict_proba(X)[:, 1]
+    #datadf[labels.name + " probability"] = svc_pipe.predict_proba(X)[:, 1]
+    datadf[labels.name + " probability"] = svc_pipe.predict_proba(datadf)[:, 1]
     
     mlflow.log_metric("train_score", round(train_score2, 2))
     mlflow.log_metric("test_score", round(test_score2, 2))
     mlflow.end_run()
 
+############################################################
+# saving the last model run 
+############################################################
 
+#svc_pipe.save(model_name='svc_model')
+joblib.dump(svc_pipe, '/home/cdsw/models/svc_model.pkl') 
+
+############################################################
 # Create LIME Explainer
 feature_names = list(ce.columns_)
 categorical_features = list(ce.cat_columns_ix_.values())
