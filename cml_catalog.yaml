@@ -8,7 +8,7 @@ entries:
         This project is used for CML Workshop. It is based on Customer Churn AMP and highlights all of the major functionality of CML.
         The project contains code to ingest and explore data, train a model, including experimentation with mlflow, deployment of the best model 
         and tracking its performance with MLOps. An interactive Flask application is deployed as part of this project as well. 
-     image_path: "https://www.google.com/url?sa=i&url=https%3A%2F%2Fcostumewall.com%2Fdress-like-lloyd-christmas%2F&psig=AOvVaw1hnO3Q2LCeaubBo9dhApy_&ust=1693540300132000&source=images&cd=vfe&opi=89978449&ved=0CA8QjRxqFwoTCKiA0LH_hYEDFQAAAAAdAAAAABAE"
+     image_path: "https://m.media-amazon.com/images/I/41jYbvZkUbL._AC_.jpg"
      tags:
       - Churn Prediction
       - Support Vector Classiciation (SVC)
