@@ -7,7 +7,8 @@ entries:
      long_description: >-
         This project is used for CML Workshop. It is based on Customer Churn AMP and highlights all of the major functionality of CML.
         The project contains code to ingest and explore data, train a model, including experimentation with mlflow, deployment of the best model 
-        and tracking its performance with MLOps. An interactive Flask application is deployed as part of this project as well. 
+        and tracking its performance with MLOps. An interactive Flask application is deployed as part of this project as well. This is the workshop
+        version of the churn amp
      image_path: "https://m.media-amazon.com/images/I/41jYbvZkUbL._AC_.jpg"
      tags:
       - Churn Prediction
