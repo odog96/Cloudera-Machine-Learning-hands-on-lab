@@ -83,6 +83,7 @@ import os
 import pandas as pd
 import numpy as np
 import cdsw
+import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -212,24 +213,35 @@ joblib.dump(svc_pipe, '/home/cdsw/models/svc_model.pkl')
 
 ############################################################
 # Create LIME Explainer
-feature_names = list(ce.columns_)
+#feature_names = list(ce.columns_)
+
+feature_names = datadf.iloc[:,:-1].columns.tolist()
 categorical_features = list(ce.cat_columns_ix_.values())
 categorical_names = {i: ce.classes_[c] for c, i in ce.cat_columns_ix_.items()}
 class_names = ["No " + labels.name, labels.name]
+
+categorical_names = {}
+for feature in categorical_features:
+  print(feature)
+  le = sklearn.preprocessing.LabelEncoder()
+  le.fit(datadf.iloc[:, feature])
+  datadf.iloc[:,feature] = le.transform(datadf.iloc[:, feature])
+  categorical_names[feature] = le.classes_
+
 explainer = LimeTabularExplainer(
-    ce.transform(datadf),
+    datadf.iloc[:,:-1].values,        # ce.transform(datadf),
     feature_names=feature_names,
     class_names=class_names,
     categorical_features=categorical_features,
-    categorical_names=categorical_names,
+    categorical_names=categorical_names
+  #,    training_data_stats=training_data_stats
 )
-
 
 # Create and save the combined Logistic Regression and LIME Explained Model.
 explainedmodel = ExplainedModel(
-    data=datadf,
+    data=datadf.iloc[:,:-1],
     labels=labels,
-    categoricalencoder=ce,
+  #  categoricalencoder=ce,
     pipeline=svc_pipe,
     explainer=explainer,
 )
