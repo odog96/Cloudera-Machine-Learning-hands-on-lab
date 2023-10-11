@@ -145,63 +145,57 @@ for colname, dtype in zip(datadf.columns, datadf.dtypes):
   if dtype == "object":
     datadf[colname] = pd.Categorical(datadf[colname])
 
-      
+  
 # Prepare data for Sklearn model and create train/test split
-# #####
-# Modifying the code below
-# splitting data into training first 
-
-X_train, X_test = train_test_split(datadf, random_state=42)
-y_train, y_test = labels[X_train.index.values].values, \
-labels[X_test.index.values].values
-
-
 ce = CategoricalEncoder()
-# need to fit ce object, preferably on X_train. 
-ce.fit_transform(X_train)
-
-#X = ce.fit_transform(datadf)
-#y = labels.values
-#X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
-
+X = ce.fit_transform(datadf)
+y = labels.values
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
 ct = ColumnTransformer(
     [("ohe", OneHotEncoder(categories='auto'), list(ce.cat_columns_ix_.values()))],
-    remainder="passthrough")
+    remainder="passthrough"
+)
 
 # Instantiate a new set of experiments (mlflow experiment object)
 mlflow.set_experiment("Churn Model Tuning")
 mlflow.autolog(log_input_examples=True)
 
-# Define a search grid
-kernel = ["linear", "rbf"]
-max_iter = [1, 10, 100, 1000, 10000]
-
 # Iterate over the grid, re-training the model every time and recording train and test score as the metrics
-for k in kernel:
-  for i in max_iter:
     
-    # Start experiment run
-    mlflow.start_run()
-    mlflow.log_param("Kernel", k)
-    mlflow.log_param("Max_iter", i)
-    
-    # Define and fit model pipeline
-    svc = SVC(kernel = k, random_state = 0, max_iter=i, probability=True)
-    svc_pipe = Pipeline([('ce',ce),  ("ct", ct), ("scaler", StandardScaler()), ("svc_fit", svc)])
-    svc_pipe.fit(X_train, y_train)
-    
-    # Capture train and test set scores
-    train_score2 = svc_pipe.score(X_train, y_train)
-    test_score2 = svc_pipe.score(X_test, y_test)
-    #datadf[labels.name + " probability"] = svc_pipe.predict_proba(X)[:, 1]
-    datadf[labels.name + " probability"] = svc_pipe.predict_proba(datadf)[:, 1]
-    
-    mlflow.log_metric("train_score", round(train_score2, 2))
-    mlflow.log_metric("test_score", round(test_score2, 2))
-    mlflow.end_run()
+# Start experiment run
+
+# Define and fit model pipeline
+svc = SVC(kernel = "rbf", random_state = 0, max_iter=10000, probability=True)
+svc_pipe = Pipeline([("ct", ct), ("scaler", StandardScaler()), ("svc_fit", svc)])
+svc_pipe.fit(X_train, y_train)
+
+# Capture train and test set scores
+#train_score2 = svc_pipe.score(X_train, y_train)
+#test_score2 = svc_pipe.score(X_test, y_test)
+datadf[labels.name + " probability"] = svc_pipe.predict_proba(X)[:, 1]
 
 
-############################################################
-# removed LIME
-############################################################
 
+# Create LIME Explainer
+feature_names = list(ce.columns_)
+categorical_features = list(ce.cat_columns_ix_.values())
+categorical_names = {i: ce.classes_[c] for c, i in ce.cat_columns_ix_.items()}
+class_names = ["No " + labels.name, labels.name]
+explainer = LimeTabularExplainer(
+    ce.transform(datadf),
+    feature_names=feature_names,
+    class_names=class_names,
+    categorical_features=categorical_features,
+    categorical_names=categorical_names,
+)
+
+
+# Create and save the combined Logistic Regression and LIME Explained Model.
+explainedmodel = ExplainedModel(
+    data=datadf,
+    labels=labels,
+    categoricalencoder=ce,
+    pipeline=svc_pipe,
+    explainer=explainer,
+)
+explainedmodel.save(model_name='telco_linear')
