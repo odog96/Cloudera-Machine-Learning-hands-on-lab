@@ -52,7 +52,7 @@
 !pip3 install -r requirements.txt
 
 # Create the directories and upload data
-from cmlbootstrap import CMLBootstrap
+from  import CMLBootstrap
 from IPython.display import Javascript, HTML
 import os
 import time
