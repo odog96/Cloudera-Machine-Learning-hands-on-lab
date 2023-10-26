@@ -108,6 +108,11 @@ import os
 import sys
 import subprocess
 
+try:
+  os.chdir("code")
+except:
+  pass
+
 from cmlbootstrap import CMLBootstrap
 from pyspark.sql import SparkSession
 from pyspark.sql.utils import AnalysisException

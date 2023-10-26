@@ -201,9 +201,13 @@
 
 from collections import ChainMap
 import cdsw, numpy
-from churnexplainer import ExplainedModel
+import os
 
-import pandas as pd
+try:
+  os.chdir("code")
+except:
+  pass
+from churnexplainer import ExplainedModel
 
 # Load the model saved earlier.
 em = ExplainedModel.load(model_name="telco_linear")
@@ -212,15 +216,8 @@ em = ExplainedModel.load(model_name="telco_linear")
 # `@cdsw.model_metrics` below. Don't forget to uncomment when you
 # deploy, or it won't write the metrics to the database
 
-
-
-
 @cdsw.model_metrics
-# This is the main function used for serving the model. It will take in the JSON formatted arguments , calculate the probablity of
-# churn and create a LIME explainer explained instance and return that as JSON.
-def explain(args):
-    #input_data = args["data"] # extracting data from input
-    
+def predict(args):
     data = dict(ChainMap(args, em.default_data))
     data = em.cast_dct(data)
     probability, explanation = em.explain_dct(data)
@@ -233,11 +230,49 @@ def explain(args):
 
     # Track explanation
     cdsw.track_metric("explanation", explanation)
-
     return {"data": dict(data), "probability": probability, "explanation": explanation}
+  
+
+
+# This is the main function used for serving the model. It will take in the JSON formatted arguments , calculate the probablity of
+# churn and create a LIME explainer explained instance and return that as JSON.
+def explain(args):
+  if 'columns' in args:
+    # Unpack the columns and data from args
+    columns, data_rows = args['columns'], args['data']
+        
+    # Create a list of dictionaries, one for each row of data
+    args = [dict(zip(columns, data_row)) for data_row in data_rows]
+    
+    prediction_list = []
+    for row in args:
+      prediction_list.append(predict(row))
+    return prediction_list  
+    
+  else:
+      prediction = predict(args)
+      return prediction
+      
+  
 
 
 # To test this in a Session, comment out the `@cdsw.model_metrics`  line,
 # uncomment the and run the two rows below.
 #x={"StreamingTV":"No","MonthlyCharges":70.35,"PhoneService":"No","PaperlessBilling":"No","Partner":"No","OnlineBackup":"No","gender":"Female","Contract":"Month-to-month","TotalCharges":1397.475,"StreamingMovies":"No","DeviceProtection":"No","PaymentMethod":"Bank transfer (automatic)","tenure":29,"Dependents":"No","OnlineSecurity":"No","MultipleLines":"No","InternetService":"DSL","SeniorCitizen":"No","TechSupport":"No"}
+#new_x = {"columns": ["gender", "SeniorCitizen", "Partner", "Dependents", "tenure", "PhoneService", "MultipleLines", "InternetService", "OnlineSecurity", "OnlineBackup", "DeviceProtection", "TechSupport", "StreamingTV", "StreamingMovies", "Contract", "PaperlessBilling", "PaymentMethod", "MonthlyCharges", "TotalCharges"], "data": [["Male", "No", "Yes", "No", 14, "Yes", "No", "DSL", "No", "No", "No", "Yes", "No", "No", "Month-to-month", "No", "Bank transfer (automatic)", 48.8, 664.4], ["Male", "No", "Yes", "No", 31, "Yes", "Yes", "Fiber optic", "Yes", "Yes", "No", "Yes", "No", "No", "Month-to-month", "Yes", "Credit card (automatic)", 90.55, 2929.75], ["Male", "No", "Yes", "Yes", 47, "Yes", "Yes", "Fiber optic", "No", "No", "Yes", "Yes", "Yes", "Yes", "Month-to-month", "Yes", "Bank transfer (automatic)", 107.35, 5118.95], ["Male", "No", "Yes", "Yes", 35, "Yes", "Yes", "DSL", "No", "No", "No", "Yes", "Yes", "Yes", "One year", "Yes", "Bank transfer (automatic)", 73.45, 2661.1], 
+#["Female", "No", "Yes", "No", 66, "Yes", "Yes", "Fiber optic", "Yes", "Yes", "No", "Yes", "No", "No", "One year", "No", "Electronic check", 89.0, 5898.6]]}
 #explain(x)
+#explain(new_x)
+
+
+## Wrap up
+#
+# We've now covered all the steps to **deploying and serving Models**, including the
+# requirements, limitations, and how to set up, test, and use them.
+# This is a powerful way to get data scientists' work in use by other people quickly.
+#
+# In the next part of the project we will explore how to launch a **web application**
+# served through CML.
+# Your team is busy building models to solve problems.
+# CML-hosted Applications are a simple way to get these solutions in front of
+# stakeholders quickly.
